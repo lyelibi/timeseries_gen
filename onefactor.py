@@ -1,3 +1,6 @@
+''' onefactor_timeries is a function which generates a data-set of synthetic
+correlated timeseries'''
+
 import numpy as np
 
 def onefactor_timeseries(n_objects, clusters_number,timeseries_length,coupling_parameter = 1, model='normal'):
