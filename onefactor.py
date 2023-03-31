@@ -8,7 +8,7 @@ https://arxiv.org/abs/1908.00951
 
 import numpy as np
 
-def onefactor_timeseries(N, C,L,gs = 1, model='normal'):
+def onefactor_timeseries(N, C,L,gs = .8, model='normal', mu=0):
     """Returns a data-set of correlated and clustered timeseries.
     
        :param N: Number of time-series
@@ -19,11 +19,18 @@ def onefactor_timeseries(N, C,L,gs = 1, model='normal'):
        
        :return: the data set of timeseries, and the cluster membership key.
     """
-    rem = N % C
-    quo = N // C
-    key = np.repeat(range(C),quo).tolist()
-    key.extend([C-1]*rem)
-    key = np.array(key)
+    key = np.sort(np.random.choice(range(C),N))
+
+    if isinstance(gs, np.ndarray):
+        gsvector = gs[key]
+    elif isinstance(gs, list):
+        gs = np.array(gs)
+        gsvector = gs[key]
+
+    else:
+        gsvector =gs*np.ones(N)
+        
+
 
     '''one factor model requires:
         eta as the cluster random variable
@@ -31,7 +38,7 @@ def onefactor_timeseries(N, C,L,gs = 1, model='normal'):
         We allow for the selection of gaussian or student-t models.
         i.e. stock market returns have fat tails, and aren't gaussian'''
     if model == 'normal':
-        eta = np.random.normal(loc=0,scale=1,size=(C,L))
+        eta = np.random.normal(loc=mu,scale=1,size=(C,L))
         epsilon = np.random.normal(loc=0,scale=1,size = (N,L))
     elif model =='student':
         eta = np.random.standard_t(2.5,size = (C,L))
@@ -43,8 +50,10 @@ def onefactor_timeseries(N, C,L,gs = 1, model='normal'):
     an object's features are tied to the cluster. Clusters where gs = 0 are very
     low density, and very noisy, whereas gs->1 means more correlated clusters'''    
     ''' 1-factor model: as seen in Giada-Marsili 2001'''
+    
+    gsvector = gsvector.reshape(-1,1)
 
-    return gs*eta[key-1]+np.sqrt(1-gs**2)*epsilon, key
+    return gsvector*eta[key]+np.sqrt(1-gsvector**2)*epsilon, key
 
 
 def onefactorwithvar(N, C,L,gs = 1, var= None):
