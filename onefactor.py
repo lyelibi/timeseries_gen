@@ -96,6 +96,48 @@ def onefactorwithvar(N, C,L,gs = 1, var= None):
 
     return gs*eta[key-1]+np.sqrt(1-gs**2)*epsilon, key, stds
 
+def multifactorcollinear(n_class=3,
+                         class_sizes=[4000, 4000, 4000],
+                         n_groups=4,
+                         group_sizes=[2, 20, 2, 20],
+                         signal_strength=[.95, 0.5, 0.95, 0.5],
+                         class_separability=[0.7, 0.7, 0.4, 0.40],):
+
+    y = np.concatenate([[i]*class_sizes[i] for i in range(n_class)])
+    feat_labels = np.concatenate([[i]*group_sizes[i] for i in range(n_groups)])
+
+    n_obj = sum(class_sizes)
+    xmats = []
+    gmats = []
+    fmats = []
+
+    for g in range(n_groups):
+
+        '''Factor Loading Matrix'''
+        G = np.zeros((n_obj, n_class))
+        G[np.arange(n_obj), y] = class_separability[g]
+
+        all_column_indices = np.arange(n_class).reshape(1, -1).repeat(n_obj, axis=0)
+        mask = all_column_indices != y[:, np.newaxis]
+        remaining_col_indices = all_column_indices[mask]
+
+        ''' Random factor loading for the remaining classes'''
+        # remaining_vals = 1 - G[np.arange(n_obj), y]
+        # dirichlet_samples = np.random.dirichlet(np.ones(n_class - 1), size=n_obj) * remaining_vals[:, np.newaxis]
+        # G[np.repeat(np.arange(n_obj), n_class-1), remaining_col_indices] = dirichlet_samples.flatten()
+        ''' Equal factor loading for the remaining classes'''
+        G[np.repeat(np.arange(n_obj), n_class-1), remaining_col_indices] = (1 - class_separability[g])/n_class
+
+        ''' Factor matrix '''
+        F = np.random.normal(0, 1, (n_class, group_sizes[g]))
+        ''' Group Synthetic Data'''
+        X = signal_strength[g]*np.matmul(G, F) + np.sqrt(1-signal_strength[g]**2)*np.random.normal(0, 1,(n_obj, group_sizes[g]))
+        xmats.append(X)
+        fmats.append(F)
+        gmats.append(G)
+    data = np.concatenate(xmats, axis=1)
+    return data, y, feat_labels
+
 # n_objects = 10000
 # clusters_number = 5
 # timeseries_length = 1000
